@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -15,9 +16,9 @@ func SetUpRoutes(app *fiber.App) {
 }
 
 func main() {
-	env := godotenv.Load()
+	err := godotenv.Load()
 	if err != nil {
-		fmt.println("Error loading .env file")
+		fmt.Println("Error loading .env file")
 	}
 	app := fiber.New()
 	app.Use(logger.New())
