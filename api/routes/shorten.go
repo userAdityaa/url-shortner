@@ -7,6 +7,7 @@ import (
 
 	"github.com/asaskevich/govalidator"
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"github.com/userAdityaa/url-shortner/database"
 	"github.com/userAdityaa/url-shortner/helpers"
 )
@@ -60,6 +61,33 @@ func ShortenURL(c *fiber.Ctx) error {
 	}
 
 	body.URL = helpers.EnforceHTTP(body.URL)
+
+	var id string
+
+	if body.CustomShort != "" {
+		id = uuid.New().String()[:6]
+	} else {
+		id = body.CustomShort
+	}
+
+	r := database.CreateClient(0)
+	defer r.Close()
+
+	val, _ = r.Get(database.Ctx, id).Result()
+
+	if val != "" {
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"message": "Custom short URL already exists"})
+	}
+
+	if body.Expiry == 0 {
+		body.Expiry = 24
+	}
+
+	err = r.Set(database.Ctx, id, body.URL, body.Expiry*3600*time.Second).Err()
+
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"message": "Internal server error"})
+	}
 
 	r2.Decr(database.Ctx, c.IP())
 
